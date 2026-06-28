@@ -24,9 +24,6 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-/// The five extglob trigger characters.
-const TRIGGERS: [u8; 5] = [b'@', b'?', b'!', b'+', b'*'];
-
 /// Returns `true` if `s` contains an unescaped extglob pattern.
 ///
 /// An extglob is a trigger character (`@ ? ! + *`) immediately followed by `(`,
@@ -56,19 +53,22 @@ pub fn is_extglob(s: &str) -> bool {
     while i < bytes.len() {
         let b = bytes[i];
 
-        // A backslash consumes the next character. This mirrors the escape
-        // branch: skip both bytes and keep scanning. If the backslash is the
-        // last byte it matches nothing, so stop.
+        // A backslash consumes the next character. Skip both the backslash and
+        // the whole escaped character, then keep scanning. If the backslash is
+        // the last byte it escapes nothing, so stop.
         if b == b'\\' {
-            if i + 1 >= bytes.len() {
-                return false;
+            match s[i + 1..].chars().next() {
+                Some(c) => i += 1 + c.len_utf8(),
+                None => return false,
             }
-            i += next_char_len(bytes, i + 1) + 1;
             continue;
         }
 
         // A trigger directly followed by `(` and a later `)` is an extglob.
-        if is_trigger(b) && bytes.get(i + 1) == Some(&b'(') && has_close_paren(bytes, i + 2) {
+        if matches!(b, b'@' | b'?' | b'!' | b'+' | b'*')
+            && bytes.get(i + 1) == Some(&b'(')
+            && has_close_paren(bytes, i + 2)
+        {
             return true;
         }
 
@@ -76,11 +76,6 @@ pub fn is_extglob(s: &str) -> bool {
     }
 
     false
-}
-
-/// True if `b` is one of the extglob trigger characters.
-fn is_trigger(b: u8) -> bool {
-    TRIGGERS.contains(&b)
 }
 
 /// True if a `)` appears at or after `start`, without crossing a newline.
@@ -97,17 +92,4 @@ fn has_close_paren(bytes: &[u8], start: usize) -> bool {
         }
     }
     false
-}
-
-/// Byte length of the UTF-8 character starting at `i`.
-///
-/// The escaped character may be multibyte, so advancing one full character
-/// keeps the scan on a `char` boundary.
-fn next_char_len(bytes: &[u8], i: usize) -> usize {
-    match bytes[i] {
-        b if b < 0x80 => 1,
-        b if b >> 5 == 0b110 => 2,
-        b if b >> 4 == 0b1110 => 3,
-        _ => 4,
-    }
 }
