@@ -31,6 +31,18 @@ const CASES: &[(&str, bool)] = &[
     ("@\\(abc\\)", false),
     // head with no closing paren
     ("@(abc", false),
+    // 4-byte char inside the body: scan handles a non-BMP char in the group
+    ("@(😀)", true),
+    // 4-byte char before the trigger: the prefix does not slip the index
+    ("😀@(a)", true),
+    // escaped 4-byte char skipped, real extglob found after it
+    ("\\😀@(a)", true),
+    // trigger then escaped 4-byte char: paren not adjacent to the trigger
+    ("@\\😀(a)", false),
+    // the only `)` sits past the newline, so the head never closes on its line
+    ("@(a\nb)c)", false),
+    // head closes before the newline, so the later newline does not matter
+    ("@(a)b\nc)", true),
 ];
 
 #[test]
