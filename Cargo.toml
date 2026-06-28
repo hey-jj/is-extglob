@@ -8,3 +8,10 @@ repository = "https://github.com/hey-jj/is-extglob"
 readme = "README.md"
 
 [dependencies]
+
+# Dev-only. `regex` builds an oracle that replicates the reference regex so the
+# property tests can prove the scanner agrees over random input. `proptest`
+# generates that input. Neither ships with the crate.
+[dev-dependencies]
+regex = "1"
+proptest = "1"
