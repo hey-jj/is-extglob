@@ -55,3 +55,12 @@ fn edge_cases_match_rule() {
         );
     }
 }
+
+#[test]
+fn accepts_owned_and_borrowed_strings() {
+    let owned = String::from("?(abc)");
+    assert!(is_extglob(&owned));
+    assert!(is_extglob(owned));
+    assert!(is_extglob("?(abc)"));
+    assert!(!is_extglob(String::new()));
+}

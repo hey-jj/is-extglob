@@ -43,7 +43,11 @@
 /// assert!(!is_extglob("@\\(abc)")); // escaped paren
 /// assert!(!is_extglob("abc/(aaa|bbb).js")); // group has no trigger char
 /// ```
-pub fn is_extglob(s: &str) -> bool {
+///
+/// The argument is generic over `AsRef<str>`, so `&str`, `String`, `&String`,
+/// and `Cow<str>` all work without an explicit `.as_ref()` at the call site.
+pub fn is_extglob(s: impl AsRef<str>) -> bool {
+    let s = s.as_ref();
     if s.is_empty() {
         return false;
     }
