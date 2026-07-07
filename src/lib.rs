@@ -54,8 +54,20 @@ pub fn is_extglob(s: impl AsRef<str>) -> bool {
 
     let bytes = s.as_bytes();
     let mut i = 0;
+    let mut saw_head = false;
     while i < bytes.len() {
         let b = bytes[i];
+
+        if saw_head {
+            if b == b')' {
+                return true;
+            }
+            if b == b'\n' {
+                saw_head = false;
+            }
+            i += 1;
+            continue;
+        }
 
         // A backslash consumes the next character. Skip both the backslash and
         // the whole escaped character, then keep scanning. If the backslash is
@@ -68,32 +80,15 @@ pub fn is_extglob(s: impl AsRef<str>) -> bool {
             continue;
         }
 
-        // A trigger directly followed by `(` and a later `)` is an extglob.
-        if matches!(b, b'@' | b'?' | b'!' | b'+' | b'*')
-            && bytes.get(i + 1) == Some(&b'(')
-            && has_close_paren(bytes, i + 2)
-        {
-            return true;
+        // A trigger directly followed by `(` starts a pending extglob head.
+        if matches!(b, b'@' | b'?' | b'!' | b'+' | b'*') && bytes.get(i + 1) == Some(&b'(') {
+            saw_head = true;
+            i += 2;
+            continue;
         }
 
         i += 1;
     }
 
-    false
-}
-
-/// True if a `)` appears at or after `start`, without crossing a newline.
-///
-/// The pattern run stops at a newline, so a closing paren on a later line does
-/// not complete the extglob.
-fn has_close_paren(bytes: &[u8], start: usize) -> bool {
-    for &b in &bytes[start..] {
-        if b == b'\n' {
-            return false;
-        }
-        if b == b')' {
-            return true;
-        }
-    }
     false
 }
