@@ -1,6 +1,6 @@
 [package]
 name = "is-extglob"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "detect extglob patterns in a string (precursor check for is-glob/micromatch)"
 license = "MIT"
